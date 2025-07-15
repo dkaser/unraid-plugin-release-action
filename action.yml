@@ -1,0 +1,134 @@
+name: "Release Unraid Plugin"
+description: "Builds and releases an Unraid plugin from a GitHub repository."
+inputs:
+  plugin_version:
+    description: "Version of the Unraid plugin"
+    required: false
+    default: "${{ github.event.release.name }}"
+  github_token:
+    description: "GitHub token for authentication"
+    required: true
+  release_branch:
+    description: "Branch to use for the release"
+    required: true
+    default: "main"
+  upload_url:
+    description: "URL to upload the release assets"
+    required: false
+    default: "${{ github.event.release.upload_url }}"
+  composer_dir:
+    description: "Directory containing the composer.json file"
+    required: false
+    default: ""
+  go_dir:
+    description: "Directory containing the Go application to build"
+    required: false
+    default: ""
+  build_script:
+    description: "Custom script to run before building the package"
+    required: false
+    default: ""
+  changelog_releases:
+    description: "Number of releases to include in the plugin changelog"
+    required: false
+    default: 3
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+      with:
+        path: tag
+        token: ${{ inputs.github_token }}
+
+    - uses: actions/checkout@v3
+      with:
+        path: main
+        ref: ${{ inputs.release_branch }}
+        token: ${{ inputs.github_token }}
+
+    - name: Load plugin configuration
+      run: |
+        cd ${{ github.workspace }}/tag/plugin
+        echo "PLUGIN_JSON=$(jq -c . < plugin.json)" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Get previous releases
+      id: get_previous_releases
+      run: |
+        cd ${{ github.workspace }}
+        echo "" > changelog.md
+
+        previous_releases=$(gh release list --repo ${{ github.repository }} --limit ${{ inputs.changelog_releases }} | awk '{print $1}')
+        for release in $previous_releases; do
+          release_info=$(gh release view $release --repo ${{ github.repository }} --json name,body)
+          version=$(echo $release_info | jq -r '.name')
+          description=$(echo $release_info | jq -r '.body')
+
+          printf "### %s\n%s\n" "$version" "$description" >> changelog.md
+        done
+
+        echo "formatted_releases<<ENVEOFENF" >> $GITHUB_OUTPUT
+        cat changelog.md >> $GITHUB_OUTPUT
+        echo "ENVEOFENF" >> $GITHUB_OUTPUT
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Install Composer dependencies
+      uses: "php-actions/composer@v6"
+      with:
+        dev: no
+        working_dir: tag/${{ inputs.composer_dir }}
+      if: inputs.composer_dir != ''
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: tag/${{ inputs.go_dir }}/go.mod
+        cache-dependency-path: tag/${{ inputs.go_dir }}/go.sum
+      if: inputs.go_dir != ''
+
+    - name: Run custom build script
+      run: |
+        cd ${{ github.workspace }}/tag
+        ${{ inputs.build_script }}
+      shell: bash
+      if: inputs.build_script != ''
+
+    - name: Build package
+      id: build_files
+      run: |
+        mkdir release
+        cd ${{ github.workspace }}/tag/src
+        tar --owner=0 --group=0 -cJf ../../release/${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz *
+        cd ${{ github.workspace }}/release
+        sha256sum ${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz | awk '{print $1}' > ${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz.sha256
+        echo "checksum=$(cat ${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz.sha256)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Upload package to release
+      uses: shogo82148/actions-upload-release-asset@v1
+      with:
+        upload_url: ${{ inputs.upload_url }}
+        asset_path: release/*
+
+    - name: Template plugin file
+      uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
+      with:
+        template: main/plugin/plugin.j2
+        output_file: main/plugin/${{ fromJson(env.PLUGIN_JSON).name }}.plg
+        data_file: main/plugin/plugin.json
+      env:
+        PLUGIN_VERSION: ${{ inputs.plugin_version }}
+        PLUGIN_CHECKSUM: ${{ steps.build_files.outputs.checksum }}
+        PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
+
+    - name: Commit and push plugin file
+      uses: EndBug/add-and-commit@v9
+      with:
+        default_author: github_actions
+        message: "release: update plugin file for ${{ inputs.plugin_version }}"
+        add: "plugin/${{ fromJson(env.PLUGIN_JSON).name }}.plg"
+        push: true
+        cwd: main/
