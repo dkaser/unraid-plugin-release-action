@@ -32,7 +32,7 @@ See the sample [plugin.j2](plugin-example/plugin.j2) for a complete example.
 
 You can reference fields from `plugin.json` and environment variables set by the action.
 
-## Usage in a GitHub Workflow
+## Creating the GitHub Workflow
 
 Add a workflow file (e.g., `.github/workflows/release.yml`) with the following content:
 
@@ -60,6 +60,29 @@ jobs:
           # build_script: ./build.sh
           # changelog_releases: 5
 ```
+## Releasing the Plugin
+
+To release your plugin, create a new GitHub release with the following guidelines:
+
+### Release Configuration
+
+- **Tag**: Use the plugin version number
+- **Name**: Use the plugin version number  
+- **Description**: Describe the plugin changes (this content will be included in the plugin's changelog)
+
+### Version Numbering
+
+**Important:** Slackware packages do not work well with letters in version numbers.
+
+❌ **Avoid:**
+- `2025.01.01a`
+- `2025.01.01b`
+
+✅ **Use instead:**
+- `2025.01.01.1`
+- `2025.01.01.2`
+
+If you need to release multiple plugin updates on the same day, append an additional number rather than using letters.
 
 ## Repository Structure
 
