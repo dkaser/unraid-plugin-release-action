@@ -1,24 +1,13 @@
-name: Keep the versions up-to-date
+name: Update Major Version Tag
 
 on:
-  release: # (1)
-    types:
-      - released
-      - edited
-  push: # (1)
+  push:
     tags:
-      - "v?[0-9]+.[0-9]+.[0-9]+"
-    branches-ignore:
-      - "**"
-    paths-ignore:
-      - "**"
+      - "v*"
 
 jobs:
-  actions-tagger:
-    runs-on: windows-latest
-    permissions: # (2)
-      contents: write
+  update-majorver:
+    name: Update Major Version Tag
+    runs-on: ubuntu-latest
     steps:
-      - uses: Actions-R-Us/actions-tagger@v2
-        with:
-          publish_latest_tag: true
+      - uses: nowactions/update-majorver@v1

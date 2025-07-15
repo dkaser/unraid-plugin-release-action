@@ -8,8 +8,8 @@ inputs:
   github_token:
     description: "GitHub token for authentication"
     required: true
-  release_branch:
-    description: "Branch to use for the release"
+  plg_branch:
+    description: "Branch to use for the templated plugin file"
     required: true
     default: "main"
   upload_url:
@@ -44,7 +44,7 @@ runs:
     - uses: actions/checkout@v3
       with:
         path: main
-        ref: ${{ inputs.release_branch }}
+        ref: ${{ inputs.plg_branch }}
         token: ${{ inputs.github_token }}
 
     - name: Load plugin configuration
