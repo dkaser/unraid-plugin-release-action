@@ -65,7 +65,7 @@ runs:
           version=$(echo $release_info | jq -r '.name')
           description=$(echo $release_info | jq -r '.body')
 
-          printf "### %s\n%s\n" "$version" "$description" >> changelog.md
+          printf "### %s\n\n%s\n\n" "$version" "$description" >> changelog.md
         done
 
         echo "formatted_releases<<ENVEOFENF" >> $GITHUB_OUTPUT
