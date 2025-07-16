@@ -112,6 +112,7 @@ runs:
       with:
         upload_url: ${{ inputs.upload_url }}
         asset_path: release/*
+        overwrite: true
 
     - name: Template plugin file
       uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
