@@ -71,6 +71,14 @@ runs:
         echo "PLUGIN_JSON=$(jq -c . < plugin.json)" >> $GITHUB_ENV
       shell: bash
 
+    - name: Set global variables
+      id: globals
+      run: |
+        echo "package_file=${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz" >> $GITHUB_OUTPUT
+        echo "package_name=${{ fromJson(env.PLUGIN_JSON).package_name }}" >> $GITHUB_OUTPUT
+        echo "name=${{ fromJson(env.PLUGIN_JSON).name }}" >> $GITHUB_OUTPUT
+      shell: bash
+
     - name: Get previous releases
       id: get_previous_releases
       run: |
@@ -93,54 +101,79 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
 
+    # Check to see if github.event.release.assets already has a release package
+    # If it does, skip the build step and save the SHA256 checksum to the output for the plugin file
+    - name: Check for existing release package
+      id: check_existing_package
+      run: |
+        cd ${{ github.workspace }}/tag
+        reldata=$(gh release view ${{ github.event.release.tag_name }} --json assets --jq '.assets[] | select(.name == "${{ steps.globals.outputs.package_file }}")')
+        cd ${{ github.workspace }}
+
+        if [[ -n $reldata ]]; then
+          echo "Package already exists, skipping build."
+          dlUrl=$(echo "$reldata" | jq -r '.url')
+          curl -L -o checksum.txz "$dlUrl"
+          checksum=$(sha256sum checksum.txz | awk '{print $1}')
+
+          echo "checksum=$checksum" >> $GITHUB_OUTPUT
+          echo "skip_build=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip_build=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
     - name: Install Composer dependencies
       uses: "php-actions/composer@v6"
       with:
         dev: no
         working_dir: tag/${{ inputs.composer_dir }}
-      if: inputs.composer_dir != ''
+      if: inputs.composer_dir != '' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version-file: tag/${{ inputs.go_dir }}/go.mod
         cache-dependency-path: tag/${{ inputs.go_dir }}/go.sum
-      if: inputs.go_dir != ''
+      if: inputs.go_dir != '' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Run custom build script
       run: |
         cd ${{ github.workspace }}/tag
         ${{ inputs.build_script }}
       shell: bash
-      if: inputs.build_script != ''
+      if: inputs.build_script != '' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Build package
       id: build_files
       run: |
         mkdir release
         cd ${{ github.workspace }}/tag/src
-        tar --owner=0 --group=0 -cJf ../../release/${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz *
+        tar --owner=0 --group=0 -cJf ../../release/${{ steps.globals.outputs.package_file }} *
         cd ${{ github.workspace }}/release
-        sha256sum ${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz | awk '{print $1}' > ${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz.sha256
-        echo "checksum=$(cat ${{ fromJson(env.PLUGIN_JSON).package_name }}-${{ inputs.plugin_version }}-noarch-1.txz.sha256)" >> $GITHUB_OUTPUT
+        sha256sum ${{ steps.globals.outputs.package_file }} | awk '{print $1}' > ${{ steps.globals.outputs.package_file }}.sha256
+        echo "checksum=$(cat ${{ steps.globals.outputs.package_file }}.sha256)" >> $GITHUB_OUTPUT
       shell: bash
+      if: steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Upload package to release
       uses: shogo82148/actions-upload-release-asset@v1
       with:
         upload_url: ${{ inputs.upload_url }}
         asset_path: release/*
-        overwrite: true
+      if: steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Template plugin file
       uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
       with:
         template: main/plugin/plugin.j2
-        output_file: main/plugin/${{ fromJson(env.PLUGIN_JSON).name }}.plg
+        output_file: main/plugin/${{ steps.globals.outputs.name }}.plg
         data_file: main/plugin/plugin.json
       env:
         PLUGIN_VERSION: ${{ inputs.plugin_version }}
-        PLUGIN_CHECKSUM: ${{ steps.build_files.outputs.checksum }}
+        PLUGIN_CHECKSUM: ${{ steps.check_existing_package.outputs.checksum || steps.build_files.outputs.checksum }}
         PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
         PLUGIN_RELEASE: ""
       if: github.event.release.prerelease == false
@@ -149,11 +182,11 @@ runs:
       uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
       with:
         template: main/plugin/plugin.j2
-        output_file: main/plugin/${{ fromJson(env.PLUGIN_JSON).name }}-preview.plg
+        output_file: main/plugin/${{ steps.globals.outputs.name }}-preview.plg
         data_file: main/plugin/plugin.json
       env:
         PLUGIN_VERSION: ${{ inputs.plugin_version }}
-        PLUGIN_CHECKSUM: ${{ steps.build_files.outputs.checksum }}
+        PLUGIN_CHECKSUM: ${{ steps.check_existing_package.outputs.checksum || steps.build_files.outputs.checksum }}
         PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
         PLUGIN_RELEASE: "-preview"
 
