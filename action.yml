@@ -32,6 +32,10 @@ inputs:
     description: "Number of releases to include in the plugin changelog"
     required: false
     default: 3
+  build_prereleases:
+    description: "Whether to build pre-releases"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -40,6 +44,13 @@ runs:
       if: github.event.release.draft
       run: |
         echo "This action does not support draft releases."
+        exit 1
+      shell: bash
+
+    - name: Check if release is a pre-release
+      if: github.event.release.prerelease && ( inputs.build_prereleases == false )
+      run: |
+        echo "This action does not support pre-releases unless 'build_prereleases' is set to true."
         exit 1
       shell: bash
 
@@ -131,12 +142,38 @@ runs:
         PLUGIN_VERSION: ${{ inputs.plugin_version }}
         PLUGIN_CHECKSUM: ${{ steps.build_files.outputs.checksum }}
         PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
+        PLUGIN_RELEASE: ""
+      if: github.event.release.prerelease == false
+
+    - name: Stage plugin file
+      run: |
+        cd ${{ github.workspace }}/main/plugin
+        git add ${{ fromJson(env.PLUGIN_JSON).name }}.plg
+      shell: bash
+      if: github.event.release.prerelease == false
+
+    - name: Template preview plugin file
+      uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
+      with:
+        template: main/plugin/plugin.j2
+        output_file: main/plugin/${{ fromJson(env.PLUGIN_JSON).name }}-preview.plg
+        data_file: main/plugin/plugin.json
+      env:
+        PLUGIN_VERSION: ${{ inputs.plugin_version }}
+        PLUGIN_CHECKSUM: ${{ steps.build_files.outputs.checksum }}
+        PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
+        PLUGIN_RELEASE: "-preview"
+
+    - name: Stage preview plugin file
+      run: |
+        cd ${{ github.workspace }}/main/plugin
+        git add ${{ fromJson(env.PLUGIN_JSON).name }}-preview.plg
+      shell: bash
 
     - name: Commit and push plugin file
       uses: EndBug/add-and-commit@v9
       with:
         default_author: github_actions
-        message: "release: update plugin file for ${{ inputs.plugin_version }}"
-        add: "plugin/${{ fromJson(env.PLUGIN_JSON).name }}.plg"
+        message: "release: update plugin files for ${{ inputs.plugin_version }}"
         push: true
         cwd: main/
