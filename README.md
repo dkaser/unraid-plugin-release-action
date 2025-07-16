@@ -13,6 +13,7 @@ The action supports several options via workflow inputs:
 - `go_dir`: If set, sets up Go using the `go.mod` and `go.sum` in the specified directory.
 - `build_script`: Bash script to run before building the Slackware package. Use this to prepare files in `src/`.
 - `changelog_releases`: Number of releases (including the current one) to include in the plugin changelog.
+- `build_prereleases`: When `true`, allows creating preview versions of your plugin. Pre-releases generate a `-preview.plg` file for testing, which gets promoted to the main `.plg` file once the GitHub release is unmarked as pre-release.
 
 ## Action Files
 
@@ -60,6 +61,7 @@ jobs:
           # build_script: ./build.sh
           # changelog_releases: 5
 ```
+
 ## Releasing the Plugin
 
 To release your plugin, create a new GitHub release with the following guidelines:
@@ -67,7 +69,7 @@ To release your plugin, create a new GitHub release with the following guideline
 ### Release Configuration
 
 - **Tag**: Use the plugin version number
-- **Name**: Use the plugin version number  
+- **Name**: Use the plugin version number
 - **Description**: Describe the plugin changes (this content will be included in the plugin's changelog)
 
 ### Version Numbering
@@ -75,10 +77,12 @@ To release your plugin, create a new GitHub release with the following guideline
 **Important:** Slackware packages do not work well with letters in version numbers.
 
 ❌ **Avoid:**
+
 - `2025.01.01a`
 - `2025.01.01b`
 
 ✅ **Use instead:**
+
 - `2025.01.01.1`
 - `2025.01.01.2`
 
