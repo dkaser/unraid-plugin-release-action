@@ -36,6 +36,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Check if release is a draft
+      if: github.event.release.draft
+      run: |
+        echo "This action does not support draft releases."
+        exit 1
+      shell: bash
+
     - uses: actions/checkout@v3
       with:
         path: tag
