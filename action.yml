@@ -145,13 +145,6 @@ runs:
         PLUGIN_RELEASE: ""
       if: github.event.release.prerelease == false
 
-    - name: Stage plugin file
-      run: |
-        cd ${{ github.workspace }}/main/plugin
-        git add ${{ fromJson(env.PLUGIN_JSON).name }}.plg
-      shell: bash
-      if: github.event.release.prerelease == false
-
     - name: Template preview plugin file
       uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
       with:
@@ -164,13 +157,7 @@ runs:
         PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
         PLUGIN_RELEASE: "-preview"
 
-    - name: Stage preview plugin file
-      run: |
-        cd ${{ github.workspace }}/main/plugin
-        git add ${{ fromJson(env.PLUGIN_JSON).name }}-preview.plg
-      shell: bash
-
-    - name: Commit and push plugin file
+    - name: Commit and push plugin files
       uses: EndBug/add-and-commit@v9
       with:
         default_author: github_actions
