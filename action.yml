@@ -194,6 +194,7 @@ runs:
         PLUGIN_CHECKSUM: ${{ steps.check_existing_package.outputs.checksum || steps.build_files.outputs.checksum }}
         PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
         PLUGIN_RELEASE: "-preview"
+        PLUGIN_TAG: ${{ github.event.release.tag_name }}
       if: inputs.build_prereleases == 'true'
 
     - name: Commit and push plugin files
