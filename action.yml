@@ -37,6 +37,10 @@ inputs:
     required: false
     default: "false"
 
+branding:
+  icon: 'package'
+  color: 'orange'
+
 runs:
   using: "composite"
   steps:
