@@ -38,8 +38,8 @@ inputs:
     default: "false"
 
 branding:
-  icon: 'package'
-  color: 'orange'
+  icon: "package"
+  color: "orange"
 
 runs:
   using: "composite"
@@ -170,7 +170,7 @@ runs:
       if: steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Template plugin file
-      uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
+      uses: dkaser/jinja2-action@v1
       with:
         template: main/plugin/plugin.j2
         output_file: main/plugin/${{ steps.globals.outputs.name }}.plg
@@ -183,7 +183,7 @@ runs:
       if: github.event.release.prerelease == false
 
     - name: Template preview plugin file
-      uses: cuchi/jinja2-action@0264c440d5561d32eee3d8239a9a637a96eb5a61
+      uses: dkaser/jinja2-action@v1
       with:
         template: main/plugin/plugin.j2
         output_file: main/plugin/${{ steps.globals.outputs.name }}-preview.plg
