@@ -42,16 +42,17 @@ name: Release Unraid Plugin
 
 on:
   release:
-    types: [published]
+    types:
+      - prereleased
+      - released
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Release Unraid Plugin
-        uses: dkaser/unraid-plugin-release-action@v1
+      - uses: dkaser/unraid-plugin-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Optional:
