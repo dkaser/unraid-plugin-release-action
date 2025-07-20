@@ -181,6 +181,7 @@ runs:
         PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
         PLUGIN_RELEASE: ""
         PLUGIN_TAG: ${{ github.event.release.tag_name }}
+        GITHUB_CONTEXT: ${{ toJson(github) }}
       if: github.event.release.prerelease == false
 
     - name: Template preview plugin file
@@ -195,6 +196,7 @@ runs:
         PLUGIN_CHANGELOG: ${{ steps.get_previous_releases.outputs.formatted_releases }}
         PLUGIN_RELEASE: "-preview"
         PLUGIN_TAG: ${{ github.event.release.tag_name }}
+        GITHUB_CONTEXT: ${{ toJson(github) }}
       if: inputs.build_prereleases == 'true'
 
     - name: Commit and push plugin files
