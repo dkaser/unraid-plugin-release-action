@@ -40,6 +40,10 @@ inputs:
     description: "Whether to build the slackware package"
     required: false
     default: "true"
+  ssh_key:
+    description: "SSH key for bypassing rulesets"
+    required: false
+    default: ""
 
 branding:
   icon: "package"
@@ -66,12 +70,27 @@ runs:
       with:
         path: tag
         token: ${{ inputs.github_token }}
+      if: inputs.ssh_key == ''
 
     - uses: actions/checkout@v3
       with:
         path: main
         ref: ${{ inputs.plg_branch }}
         token: ${{ inputs.github_token }}
+      if: inputs.ssh_key == ''
+
+    - uses: actions/checkout@v3
+      with:
+        path: tag
+        ssh-key: ${{ inputs.ssh_key }}
+      if: inputs.ssh_key != ''
+
+    - uses: actions/checkout@v3
+      with:
+        path: main
+        ref: ${{ inputs.plg_branch }}
+        ssh-key: ${{ inputs.ssh_key }}
+      if: inputs.ssh_key != ''
 
     - name: Load plugin configuration
       run: |
