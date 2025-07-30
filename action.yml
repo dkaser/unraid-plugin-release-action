@@ -36,6 +36,10 @@ inputs:
     description: "Whether to build pre-releases"
     required: false
     default: "false"
+  build_package:
+    description: "Whether to build the slackware package"
+    required: false
+    default: "true"
 
 branding:
   icon: "package"
@@ -128,27 +132,28 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
+      if: inputs.build_package == 'true'
 
     - name: Install Composer dependencies
       uses: "php-actions/composer@v6"
       with:
         dev: no
         working_dir: tag/${{ inputs.composer_dir }}
-      if: inputs.composer_dir != '' && steps.check_existing_package.outputs.skip_build != 'true'
+      if: inputs.composer_dir != '' && inputs.build_package == 'true' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version-file: tag/${{ inputs.go_dir }}/go.mod
         cache-dependency-path: tag/${{ inputs.go_dir }}/go.sum
-      if: inputs.go_dir != '' && steps.check_existing_package.outputs.skip_build != 'true'
+      if: inputs.go_dir != '' && inputs.build_package == 'true' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Run custom build script
       run: |
         cd ${{ github.workspace }}/tag
         ${{ inputs.build_script }}
       shell: bash
-      if: inputs.build_script != '' && steps.check_existing_package.outputs.skip_build != 'true'
+      if: inputs.build_script != '' && inputs.build_package == 'true' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Build package
       id: build_files
@@ -160,14 +165,14 @@ runs:
         sha256sum ${{ steps.globals.outputs.package_file }} | awk '{print $1}' > ${{ steps.globals.outputs.package_file }}.sha256
         echo "checksum=$(cat ${{ steps.globals.outputs.package_file }}.sha256)" >> $GITHUB_OUTPUT
       shell: bash
-      if: steps.check_existing_package.outputs.skip_build != 'true'
+      if: steps.check_existing_package.outputs.skip_build != 'true' && inputs.build_package == 'true'
 
     - name: Upload package to release
       uses: shogo82148/actions-upload-release-asset@v1
       with:
         upload_url: ${{ inputs.upload_url }}
         asset_path: release/*
-      if: steps.check_existing_package.outputs.skip_build != 'true'
+      if: steps.check_existing_package.outputs.skip_build != 'true' && inputs.build_package == 'true'
 
     - name: Template plugin file
       uses: dkaser/jinja2-action@v1
