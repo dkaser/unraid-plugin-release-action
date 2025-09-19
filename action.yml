@@ -122,7 +122,7 @@ runs:
         cd ${{ github.workspace }}
         echo "" > changelog.md
 
-        previous_releases=$(gh release list --repo ${{ github.repository }} --limit ${{ inputs.changelog_releases }} | awk '{print $1}')
+        previous_releases=$(gh release list --exclude-drafts --repo ${{ github.repository }} --limit ${{ inputs.changelog_releases }} | awk '{print $1}')
         for release in $previous_releases; do
           release_info=$(gh release view $release --repo ${{ github.repository }} --json name,body)
           version=$(echo $release_info | jq -r '.name')
