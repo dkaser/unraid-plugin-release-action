@@ -80,6 +80,7 @@ runs:
       with:
         path: tag
         token: ${{ inputs.github_token }}
+        submodules: recursive
       if: inputs.ssh_key == ''
 
     - uses: actions/checkout@v3
@@ -93,6 +94,7 @@ runs:
       with:
         path: tag
         ssh-key: ${{ inputs.ssh_key }}
+        submodules: recursive
       if: inputs.ssh_key != ''
 
     - uses: actions/checkout@v3
