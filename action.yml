@@ -20,6 +20,10 @@ inputs:
     description: "Directory containing the composer.json file"
     required: false
     default: ""
+  php_extensions:
+    description: "PHP extensions to install"
+    required: false
+    default: ""
   go_dir:
     description: "Directory containing the Go application to build"
     required: false
@@ -170,6 +174,7 @@ runs:
       with:
         dev: no
         working_dir: tag/${{ inputs.composer_dir }}
+        php_extensions: ${{ inputs.php_extensions }}
       if: inputs.composer_dir != '' && inputs.build_package == 'true' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Set up Go
