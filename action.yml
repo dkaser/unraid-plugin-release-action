@@ -178,7 +178,7 @@ runs:
       if: inputs.composer_dir != '' && inputs.build_package == 'true' && steps.check_existing_package.outputs.skip_build != 'true'
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: tag/${{ inputs.go_dir }}/go.mod
         cache-dependency-path: tag/${{ inputs.go_dir }}/go.sum
