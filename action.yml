@@ -80,28 +80,28 @@ runs:
         exit 1
       shell: bash
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         path: tag
         token: ${{ inputs.github_token }}
         submodules: recursive
       if: inputs.ssh_key == ''
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         path: main
         ref: ${{ inputs.plg_branch }}
         token: ${{ inputs.github_token }}
       if: inputs.ssh_key == ''
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         path: tag
         ssh-key: ${{ inputs.ssh_key }}
         submodules: recursive
       if: inputs.ssh_key != ''
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         path: main
         ref: ${{ inputs.plg_branch }}
